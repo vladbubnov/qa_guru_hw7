@@ -1,27 +1,16 @@
-import os
 import csv
 from zipfile import ZipFile
 
+import openpyxl
+from pypdf import PdfReader
+from confest import create_zip_archive
+import csv
+from zipfile import ZipFile
+
+import openpyxl
 from pypdf import PdfReader
 
-from script_os import RESOURCES_DIR
-
-files = [
-    f"{RESOURCES_DIR}/text.pdf",
-    f"{RESOURCES_DIR}/book.xlsx",
-    f"{RESOURCES_DIR}/users.csv"
-]
-
-
-def create_zip_archive(file_paths):
-    # Создаем ZIP-архив
-    with ZipFile("resources/archive.zip", 'w') as zip_file:
-        for file_path in file_paths:
-            # Добавляем каждый файл в архив
-            if os.path.isfile(file_path):
-                zip_file.write(file_path, os.path.basename(file_path))
-            else:
-                return f"Файл {file_path} не существует."
+from confest import create_zip_archive
 
 
 def read_pdf(file_path):
@@ -39,25 +28,51 @@ def read_csv(file_path):
         if file_path not in zip_file.namelist():
             assert False, f"Файл {file_path} не найден в архиве."
 
-        with zip_file.open(file_path) as csv_file:
-            reader = csv.reader(csv_file)
-            data = list(reader)
-            print(data)
-            return data
+    with ZipFile("resources/archive.zip") as zip_file:
+        with zip_file.open(file_path) as file:
+            content = file.read().decode('utf-8')
+            reader = csv.reader(content.splitlines())
+            actual_text = []
+            for row in reader:
+                actual_text.append(row)
+            return actual_text
 
 
-def test_pdf():
-    create_zip_archive(files)
+def read_exel(file_path):
+    with ZipFile('resources/archive.zip') as zip_file:
+        if file_path not in zip_file.namelist():
+            assert False, f"Файл {file_path} не найден в архиве."
+
+    with ZipFile("resources/archive.zip") as zip_file:
+        with zip_file.open(file_path) as file:
+            # Загружаем рабочую книгу
+            workbook = openpyxl.load_workbook(file)
+
+            # Выбираем активный лист (можно указать конкретный лист по имени или индексу)
+            sheet = workbook.active
+
+            # Читаем данные из листа
+            actual_text = []
+            for row in sheet.iter_rows(values_only=True):
+                actual_text.append(row)
+            return actual_text
+
+
+def test_pdf(create_zip_archive):
     actual_text = read_pdf("text.pdf")
-    assert "имя, фамилия, отчество, должность" in actual_text
+    expected_text = "имя, фамилия, отчество, должность"
+    assert expected_text in actual_text
 
 
-def test_csv():
-    create_zip_archive(files)
+def test_csv(create_zip_archive):
     actual_text = read_csv("users.csv")
     expected_text = "имя, фамилия, отчество, должность"
-    found = any(expected_text in row for row in actual_text)
-    assert found, f"Текст '{expected_text}' не найден в файле data.csv"
+    actual_text_str = ', '.join([', '.join(row) for row in actual_text])
+    assert expected_text in actual_text_str
 
-def test_exel():
 
+def test_exel(create_zip_archive):
+    actual_text = read_exel("book.xlsx")
+    expected_text = "имя, фамилия, отчество, должность"
+    actual_text_str = ', '.join([', '.join(row) for row in actual_text])
+    assert expected_text in actual_text_str
