@@ -38,10 +38,8 @@ def read_file(file_path):
             with zip_file.open(file_path) as file:
                 # Загружаем рабочую книгу
                 workbook = openpyxl.load_workbook(file)
-
                 # Выбираем активный лист (можно указать конкретный лист по имени или индексу)
                 sheet = workbook.active
-
                 # Читаем данные из листа
                 text = []
                 for row in sheet.iter_rows(values_only=True):
