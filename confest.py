@@ -2,7 +2,6 @@ import os
 from zipfile import ZipFile
 
 import pytest
-from selene import browser
 
 from script_os import RESOURCES_DIR
 
@@ -10,9 +9,9 @@ from script_os import RESOURCES_DIR
 @pytest.fixture(scope='class')
 def create_zip_archive():
     files = [
-        f"{RESOURCES_DIR}/text.pdf",
-        f"{RESOURCES_DIR}/book.xlsx",
-        f"{RESOURCES_DIR}/users.csv"
+        os.path.join(RESOURCES_DIR, file)
+        for file in os.listdir(RESOURCES_DIR)
+        if os.path.isfile(os.path.join(RESOURCES_DIR, file)) and not file.startswith('.')
     ]
 
     # Создаем ZIP-архив
@@ -26,6 +25,7 @@ def create_zip_archive():
 
     yield
 
+    # Удаляем созданный ZIP-архив
     if os.path.exists("resources/archive.zip"):
         if os.path.isfile("resources/archive.zip"):
             os.remove("resources/archive.zip")
